@@ -61,6 +61,14 @@ APP_ID=$(az ad app create --display-name "$APP_NAME" \
   --sign-in-audience AzureADMyOrg \
   --query appId -o tsv)
 
+# Required: Easy Auth v2 uses the hybrid flow (response_type=code+id_token) --
+# without ID token issuance enabled, Entra won't issue the id_token half of
+# that response and the /.auth/login/aad/callback step 401s even though sign-in
+# at login.microsoftonline.com itself appeared to succeed.
+az rest --method PATCH \
+  --uri "https://graph.microsoft.com/v1.0/applications(appId='$APP_ID')" \
+  --body '{"web":{"implicitGrantSettings":{"enableIdTokenIssuance":true}}}'
+
 # Optional, not required for Easy Auth to work (authSettings.bicep's
 # allowedAudiences matches the plain client ID a standard OIDC sign-in
 # actually issues -- see the comment there). Harmless to set regardless.
