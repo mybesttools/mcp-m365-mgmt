@@ -12,6 +12,7 @@ import asyncio
 import base64
 import hashlib
 import hmac
+import json
 import os
 import secrets as secrets_module
 import string
@@ -62,6 +63,12 @@ class SecretRecord:
     scopes: str  # JSON-encoded list; unused today, reserved for future per-secret tool scoping
 
 
+def scope_allows(scopes_json: str, tool_name: str) -> bool:
+    """Empty scopes list = unrestricted. Non-empty = allow-list of tool names."""
+    scopes = json.loads(scopes_json) if scopes_json else []
+    return not scopes or tool_name in scopes
+
+
 def _record_from_entity(entity: dict[str, Any]) -> SecretRecord:
     return SecretRecord(
         key_id=entity["RowKey"],
@@ -96,7 +103,9 @@ class ClientSecretStore:
     async def __aexit__(self, *exc_info: object) -> None:
         await self._table_service.close()
 
-    async def create(self, label: str, created_by: str) -> tuple[str, SecretRecord]:
+    async def create(
+        self, label: str, created_by: str, scopes: list[str] | None = None
+    ) -> tuple[str, SecretRecord]:
         key_id = _generate_key_id()
         secret_value = _generate_secret()
         now = datetime.now(timezone.utc).isoformat()
@@ -110,7 +119,9 @@ class ClientSecretStore:
             "revoked": False,
             "revokedAt": None,
             "lastUsedAt": None,
-            "scopes": "[]",
+            # Empty list means unrestricted (every tool allowed) -- an admin
+            # opts into restricting a secret by selecting specific tools.
+            "scopes": json.dumps(sorted(scopes)) if scopes else "[]",
         }
         await self._table_client.create_entity(entity)
         token = f"{TOKEN_PREFIX}{key_id}.{secret_value}"

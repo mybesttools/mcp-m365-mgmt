@@ -1,4 +1,4 @@
-from webapp.secrets_store import ClientSecretStore, hash_secret
+from webapp.secrets_store import ClientSecretStore, hash_secret, scope_allows
 
 
 async def test_create_then_verify_round_trip(store: ClientSecretStore):
@@ -49,3 +49,21 @@ async def test_list_returns_created_secrets(store: ClientSecretStore):
 def test_hash_secret_is_deterministic_and_pepper_sensitive():
     assert hash_secret("abc", b"pepper1") == hash_secret("abc", b"pepper1")
     assert hash_secret("abc", b"pepper1") != hash_secret("abc", b"pepper2")
+
+
+def test_scope_allows_empty_scopes_means_unrestricted():
+    assert scope_allows("[]", "list_users") is True
+    assert scope_allows("", "list_users") is True
+
+
+def test_scope_allows_checks_membership():
+    scopes = '["list_users", "list_groups"]'
+    assert scope_allows(scopes, "list_users") is True
+    assert scope_allows(scopes, "create_user") is False
+
+
+async def test_create_stores_scopes(store: ClientSecretStore):
+    _, record = await store.create(
+        label="restricted-agent", created_by="admin@example.com", scopes=["list_groups", "list_users"]
+    )
+    assert record.scopes == '["list_groups", "list_users"]'

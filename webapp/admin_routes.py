@@ -21,10 +21,13 @@ from pathlib import Path
 
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import JSONResponse, RedirectResponse, Response
+from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.routing import Route
 from starlette.templating import Jinja2Templates
 
+from mcp_m365_mgmt import mcp as tool_server
+
+from .openapi import OPENAPI_SPEC, SWAGGER_UI_HTML
 from .secrets_store import ClientSecretStore
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -72,19 +75,34 @@ def _store(request: Request) -> ClientSecretStore:
     return request.app.state.store
 
 
+async def _tool_names() -> list[str]:
+    return sorted(tool.name for tool in await tool_server.list_tools())
+
+
+def _scopes_summary(record) -> str:
+    scopes = json.loads(record.scopes) if record.scopes else []
+    return "all tools" if not scopes else ", ".join(scopes)
+
+
 async def list_secrets(request: Request) -> Response:
     principal = _require_admin(request)
     if not isinstance(principal, AdminPrincipal):
         return principal
     secret_list = await _store(request).list()
-    return templates.TemplateResponse(request, "secrets_list.html", {"principal": principal, "secrets": secret_list})
+    return templates.TemplateResponse(
+        request,
+        "secrets_list.html",
+        {"principal": principal, "secrets": secret_list, "scopes_summary": _scopes_summary},
+    )
 
 
 async def new_secret_form(request: Request) -> Response:
     principal = _require_admin(request)
     if not isinstance(principal, AdminPrincipal):
         return principal
-    return templates.TemplateResponse(request, "secret_new.html", {"principal": principal})
+    return templates.TemplateResponse(
+        request, "secret_new.html", {"principal": principal, "tools": await _tool_names()}
+    )
 
 
 async def create_secret(request: Request) -> Response:
@@ -95,9 +113,12 @@ async def create_secret(request: Request) -> Response:
     label = str(form.get("label", "")).strip()
     if not label:
         return JSONResponse({"error": "label is required"}, status_code=400)
-    token, record = await _store(request).create(label=label, created_by=principal.name)
+    scopes = [str(v) for v in form.getlist("scopes")]
+    token, record = await _store(request).create(label=label, created_by=principal.name, scopes=scopes)
     return templates.TemplateResponse(
-        request, "secret_created.html", {"principal": principal, "token": token, "record": record}
+        request,
+        "secret_created.html",
+        {"principal": principal, "token": token, "record": record, "scopes_summary": _scopes_summary(record)},
     )
 
 
@@ -125,8 +146,16 @@ async def api_create_secret(request: Request) -> Response:
     label = str(body.get("label", "")).strip()
     if not label:
         return JSONResponse({"error": "label is required"}, status_code=400)
-    token, record = await _store(request).create(label=label, created_by=principal.name)
+    scopes = [str(v) for v in body.get("scopes", [])]
+    token, record = await _store(request).create(label=label, created_by=principal.name, scopes=scopes)
     return JSONResponse({"token": token, "record": dataclasses.asdict(record)})
+
+
+async def api_list_tools(request: Request) -> Response:
+    principal = _require_admin(request)
+    if not isinstance(principal, AdminPrincipal):
+        return principal
+    return JSONResponse(await _tool_names())
 
 
 async def api_revoke_secret(request: Request) -> Response:
@@ -135,6 +164,20 @@ async def api_revoke_secret(request: Request) -> Response:
         return principal
     await _store(request).revoke(request.path_params["key_id"])
     return JSONResponse({"ok": True})
+
+
+async def openapi_json(request: Request) -> Response:
+    principal = _require_admin(request)
+    if not isinstance(principal, AdminPrincipal):
+        return principal
+    return JSONResponse(OPENAPI_SPEC)
+
+
+async def api_docs(request: Request) -> Response:
+    principal = _require_admin(request)
+    if not isinstance(principal, AdminPrincipal):
+        return principal
+    return HTMLResponse(SWAGGER_UI_HTML)
 
 
 def build_admin_app(store: ClientSecretStore) -> Starlette:
@@ -147,6 +190,9 @@ def build_admin_app(store: ClientSecretStore) -> Starlette:
             Route("/api/secrets", api_list_secrets, methods=["GET"]),
             Route("/api/secrets", api_create_secret, methods=["POST"]),
             Route("/api/secrets/{key_id}/revoke", api_revoke_secret, methods=["POST"]),
+            Route("/api/tools", api_list_tools, methods=["GET"]),
+            Route("/openapi.json", openapi_json, methods=["GET"]),
+            Route("/docs", api_docs, methods=["GET"]),
         ],
     )
     app.state.store = store

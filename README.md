@@ -1,6 +1,6 @@
 # Microsoft 365 / Intune MCP Server
 
-A comprehensive Model Context Protocol (MCP) server for managing Microsoft 365, Microsoft Entra ID, and Microsoft Intune resources. This server provides 32 tools for automating user management, device management, file operations, and infrastructure monitoring.
+A comprehensive Model Context Protocol (MCP) server for managing Microsoft 365, Microsoft Entra ID, and Microsoft Intune resources. This server provides 33 tools for automating user management, device management, file operations, and infrastructure monitoring. Runs locally over stdio (Claude Desktop / VS Code) or hosted on Azure over HTTP for multiple agents at once — see the Architecture section below.
 
 ## 🎯 Overview
 
@@ -63,7 +63,7 @@ flowchart TB
 
    ```bash
    git clone <repository-url>
-   cd mcp-entra-server
+   cd mcp-m365-mgmt
    ```
 
 2. **Create virtual environment**
@@ -81,7 +81,9 @@ flowchart TB
 3. **Install dependencies**
 
    ```bash
-   pip install fastmcp azure-identity requests python-docx openpyxl python-pptx odfpy python-dotenv
+   pip install -r requirements.txt
+   # or, from PyPI:
+   pip install mcp-m365-mgmt
    ```
 
 4. **Configure environment variables**
@@ -100,7 +102,9 @@ flowchart TB
 
 5. **Run the server**
    ```bash
-   python entra_server.py
+   python mcp_m365_mgmt.py
+   # or, if installed from PyPI:
+   m365-mgmt
    ```
 
 ## 🔐 Azure App Registration Setup
@@ -155,14 +159,15 @@ From your app registration **Overview** page, copy:
 - **Directory (tenant) ID** → `AZURE_TENANT_ID`
 - Client secret (from step 2) → `AZURE_CLIENT_SECRET`
 
-## 📋 Complete Tool List (32 Tools)
+## 📋 Complete Tool List (33 Tools)
 
-### 👥 User & Group Management (4 tools)
+### 👥 User & Group Management (6 tools)
 
 - `create_user` - Create new users in Microsoft Entra ID
 - `get_user_info` - Get user details by ID
 - `list_users` - List all users in tenant
 - `list_groups` - List all groups
+- `get_group_details` - Get group details by ID
 - `get_group_members` - Get group membership
 
 ### 📱 Intune Device Management (6 tools)
@@ -193,7 +198,7 @@ From your app registration **Overview** page, copy:
 - `list_intune_ad_connectors` - List AD connectors for Hybrid Join
 - `list_intune_certificate_connectors` - List NDES certificate connectors
 
-### 📄 File & Document Management (12 tools)
+### 📄 File & Document Management (11 tools)
 
 - `create_file_in_onedrive` - Create text files in OneDrive
 - `create_file_in_sharepoint` - Create text files in SharePoint
@@ -239,9 +244,9 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 ```json
 {
 	"mcpServers": {
-		"entra-server": {
+		"m365-mgmt": {
 			"command": "python",
-			"args": ["C:/path/to/mcp-entra-server/entra_server.py"],
+			"args": ["C:/path/to/mcp-m365-mgmt/mcp_m365_mgmt.py"],
 			"env": {
 				"AZURE_CLIENT_ID": "your-client-id",
 				"AZURE_TENANT_ID": "your-tenant-id",
@@ -253,6 +258,9 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 }
 ```
 
+If installed from PyPI, use the console script instead of a file path:
+`"command": "m365-mgmt", "args": []`.
+
 #### Other MCP Clients
 
 Use the `mcp.json` configuration file included in the `mcp/` directory.
@@ -262,7 +270,7 @@ Use the `mcp.json` configuration file included in the `mcp/` directory.
 ### List Intune Devices
 
 ```python
-from entra_server import list_intune_devices
+from mcp_m365_mgmt import list_intune_devices
 import json
 
 result = list_intune_devices()
@@ -272,7 +280,7 @@ print(json.dumps(result, indent=2))
 ### Create User
 
 ```python
-from entra_server import create_user
+from mcp_m365_mgmt import create_user
 
 result = create_user(
     user_principal_name="john.doe@yourtenant.com",
@@ -286,7 +294,7 @@ result = create_user(
 ### Create Word Document in SharePoint
 
 ```python
-from entra_server import create_word_document, list_sharepoint_sites
+from mcp_m365_mgmt import create_word_document, list_sharepoint_sites
 
 # First, get your SharePoint site ID
 sites = list_sharepoint_sites()
@@ -305,7 +313,7 @@ result = create_word_document(
 ### List Microsoft Tunnel Sites
 
 ```python
-from entra_server import list_microsoft_tunnel_sites
+from mcp_m365_mgmt import list_microsoft_tunnel_sites
 
 result = list_microsoft_tunnel_sites()
 for site in result['tunnel_sites']:
@@ -356,7 +364,8 @@ for site in result['tunnel_sites']:
 2. **Use least privilege**: Only grant necessary API permissions
 3. **Rotate secrets**: Regularly rotate client secrets (recommended: every 6 months)
 4. **Monitor access**: Review Azure AD sign-in logs for suspicious activity
-5. **Use managed identities**: Consider Azure Managed Identities for production deployments
+5. **Use managed identities**: the Azure-hosted deployment (`AUTH_MODE=managed_identity`) uses the Web App's system-assigned managed identity instead of a client secret — see the Architecture section
+6. **Scope agent access**: when issuing a client secret in the hosted deployment's admin UI, restrict it to only the specific tools that agent needs rather than leaving it unrestricted
 
 ## 📦 Deployment Options
 
@@ -376,12 +385,19 @@ the architecture diagram above. Provisioned with Bicep (`infra/`) and deployed
 via GitHub Actions with OIDC (`.github/workflows/`); one-time setup steps are
 in [infra/bootstrap/README.md](infra/bootstrap/README.md).
 
+Admins manage agent client secrets at `/admin` (sign in via Entra SSO), and can
+restrict each secret to a specific subset of the 33 tools rather than granting
+full access. The admin REST API (`/admin/api/*`) has an interactive Swagger UI
+at `/admin/docs` for testing — "Try it out" reuses your browser's Easy Auth
+session automatically.
+
 ## 📚 Additional Documentation
 
 - [TOOLS-SUMMARY.md](TOOLS-SUMMARY.md) - Complete tool reference with examples
 - [AUTHENTICATION.md](AUTHENTICATION.md) - Authentication mode details
+- [infra/bootstrap/README.md](infra/bootstrap/README.md) - Azure-hosted deployment: architecture diagram and one-time setup
 - [Microsoft Graph API Documentation](https://learn.microsoft.com/en-us/graph/)
-- [FastMCP Documentation](https://github.com/jlowin/fastmcp)
+- [Model Context Protocol Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 
 ## 🤝 Contributing
 
@@ -408,6 +424,17 @@ For issues and questions:
 4. Check Azure AD sign-in logs for detailed errors
 
 ## 🔄 Updates
+
+**Version 1.1** (July 2026)
+
+- Added Azure Web App hosting (`webapp/`) as an alternative to local stdio, for multiple agents at once
+- Admin SSO via Azure App Service Easy Auth (Entra ID) to manage agent client secrets at `/admin`
+- Per-agent bearer client secrets, salted + peppered hash stored in Azure Table Storage (RBAC-only access, no connection strings)
+- Per-secret tool scoping — restrict an agent's secret to a specific subset of tools instead of full access
+- `AUTH_MODE=managed_identity` — the hosted deployment authenticates to Microsoft Graph via the Web App's system-assigned managed identity, no client secret
+- Bicep infrastructure (`infra/`) and GitHub Actions CI/CD (`.github/workflows/`) using OIDC federated credentials, no long-lived Azure secrets in GitHub
+- Interactive Swagger UI (`/admin/docs`) for the admin REST API
+- `mcp_m365_mgmt.py` and the existing PyPI/stdio install path are unchanged aside from the additive `managed_identity` credential branch
 
 **Version 1.0** (November 2025)
 
