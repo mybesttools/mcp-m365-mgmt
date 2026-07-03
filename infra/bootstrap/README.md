@@ -61,10 +61,9 @@ APP_ID=$(az ad app create --display-name "$APP_NAME" \
   --sign-in-audience AzureADMyOrg \
   --query appId -o tsv)
 
-# Required: authSettings.bicep sets allowedAudiences to api://<clientId>, but
-# an app registration has no App ID URI by default -- without this, the token
-# Entra issues won't carry that audience and Easy Auth rejects it (401 after
-# what looks like a successful login).
+# Optional, not required for Easy Auth to work (authSettings.bicep's
+# allowedAudiences matches the plain client ID a standard OIDC sign-in
+# actually issues -- see the comment there). Harmless to set regardless.
 az ad app update --id "$APP_ID" --identifier-uris "api://$APP_ID"
 
 # Add an "Admin" App Role that /admin/* checks for in the X-MS-CLIENT-PRINCIPAL claim
