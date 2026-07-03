@@ -129,6 +129,7 @@ SWAGGER_UI_HTML = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <title>MCP M365 Admin API</title>
+  <link rel="icon" type="image/png" href="/admin/static/favicon.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
 </head>
 <body>

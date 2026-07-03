@@ -22,7 +22,8 @@ from pathlib import Path
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
-from starlette.routing import Route
+from starlette.routing import Mount, Route
+from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
 from mcp_m365_mgmt import mcp as tool_server
@@ -31,6 +32,7 @@ from .openapi import OPENAPI_SPEC, SWAGGER_UI_HTML
 from .secrets_store import ClientSecretStore
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
+_STATIC_DIR = Path(__file__).parent / "static"
 templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
 ADMIN_APP_ROLE_NAME = os.getenv("ADMIN_APP_ROLE_NAME", "Admin")
@@ -193,6 +195,7 @@ def build_admin_app(store: ClientSecretStore) -> Starlette:
             Route("/api/tools", api_list_tools, methods=["GET"]),
             Route("/openapi.json", openapi_json, methods=["GET"]),
             Route("/docs", api_docs, methods=["GET"]),
+            Mount("/static", app=StaticFiles(directory=str(_STATIC_DIR)), name="static"),
         ],
     )
     app.state.store = store

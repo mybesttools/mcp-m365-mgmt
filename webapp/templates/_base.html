@@ -2,24 +2,125 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>{% block title %}MCP M365 Admin{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Azure M365 Intune MCP Server — Admin{% endblock %}</title>
+  <link rel="icon" type="image/png" href="/admin/static/favicon.png">
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #ddd; }
-    .revoked { color: #999; text-decoration: line-through; }
-    .warning { background: #fff3cd; border: 1px solid #ffe69c; padding: 1rem; border-radius: 6px; }
-    code, pre { background: #f4f4f4; padding: 0.5rem; border-radius: 4px; word-break: break-all; }
+    :root {
+      --primary: #105db9;
+      --primary-dark: #0c4590;
+      --primary-light: #eaf1fb;
+      --primary-lighter: #f6f9fd;
+      --ink: #1a1f27;
+      --muted: #5b6472;
+      --border: #e2e6ec;
+      --success: #1a7f4b;
+      --success-bg: #e6f6ec;
+      --danger: #b3261e;
+      --danger-bg: #fbeceb;
+      --radius: 10px;
+      --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 1.5rem 3rem;
+      color: var(--ink);
+      background: var(--primary-lighter);
+      line-height: 1.5;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand img { width: 36px; height: 36px; border-radius: 8px; }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+    .brand-text strong { font-size: 1.05rem; }
+    .brand-text span { font-size: 0.8rem; color: var(--muted); }
+    h1 { font-size: 1.4rem; margin: 0 0 1rem; }
+    .principal-pill {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: var(--primary-light); color: var(--primary-dark);
+      padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.85rem;
+    }
+    .card {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 1.5rem; overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left; padding: 0.6rem 0.75rem; font-size: 0.78rem;
+      text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 0.75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    td.nowrap { white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    tr.revoked td { color: var(--muted); }
+    tr.revoked .label { text-decoration: line-through; }
+    td.label { font-weight: 600; }
+    .badge {
+      display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 600;
+    }
+    .badge-active { background: var(--success-bg); color: var(--success); }
+    .badge-revoked { background: var(--danger-bg); color: var(--danger); }
+    .warning {
+      background: #fff8e6; border: 1px solid #f5d98a; color: #6b4f04;
+      padding: 1rem 1.25rem; border-radius: var(--radius); margin-bottom: 1.25rem;
+    }
+    code, pre {
+      background: var(--primary-light); border: 1px solid var(--border);
+      padding: 0.75rem 1rem; border-radius: 8px; word-break: break-all;
+      font-size: 0.9rem;
+    }
+    code { padding: 0.15rem 0.4rem; }
     form.inline { display: inline; }
-    button { cursor: pointer; }
-    header { display: flex; justify-content: space-between; align-items: baseline; }
+    a { color: var(--primary); }
+    a.button, button {
+      cursor: pointer; font-size: 0.9rem; font-weight: 600;
+      padding: 0.55rem 1.1rem; border-radius: 8px; border: 1px solid var(--primary);
+      background: var(--primary); color: #fff; text-decoration: none; display: inline-block;
+    }
+    a.button:hover, button:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+    a.button.secondary, button.secondary {
+      background: #fff; color: var(--primary);
+    }
+    a.button.secondary:hover, button.secondary:hover { background: var(--primary-light); }
+    button.danger {
+      background: #fff; color: var(--danger); border-color: #e8b6b2; font-weight: 500;
+      padding: 0.35rem 0.75rem; font-size: 0.82rem;
+    }
+    button.danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+    .toolbar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem; }
+    input[type="text"] {
+      font-size: 0.95rem; padding: 0.55rem 0.75rem; border-radius: 8px;
+      border: 1px solid var(--border); width: 100%; max-width: 360px;
+    }
+    input[type="text"]:focus { outline: 2px solid var(--primary-light); border-color: var(--primary); }
+    label { font-weight: 600; font-size: 0.9rem; }
   </style>
 </head>
 <body>
   <header>
-    <h1>{% block heading %}MCP M365 Admin{% endblock %}</h1>
-    {% if principal %}<span>logged in as {{ principal.name }}</span>{% endif %}
+    <div class="brand">
+      <img src="/admin/static/logo.png" alt="">
+      <div class="brand-text">
+        <strong>Azure M365 Intune MCP Server</strong>
+        <span>Admin</span>
+      </div>
+    </div>
+    {% if principal %}<span class="principal-pill">👤 {{ principal.name }}</span>{% endif %}
   </header>
+  <h1>{% block heading %}{% endblock %}</h1>
   {% block content %}{% endblock %}
 </body>
 </html>
