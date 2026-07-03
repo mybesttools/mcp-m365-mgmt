@@ -1,0 +1,57 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  infra:
+    runs-on: ubuntu-latest
+    outputs:
+      webAppName: ${{ steps.deploy.outputs.webAppName }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy infrastructure
+        id: deploy
+        run: |
+          az deployment group create \
+            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+            --template-file infra/main.bicep \
+            --parameters infra/main.parameters.json \
+            --parameters adminAadClientId="${{ secrets.ADMIN_AAD_CLIENT_ID }}" secretPepper="${{ secrets.SECRET_PEPPER }}" \
+            --query "properties.outputs.webAppName.value" -o tsv > webapp_name.txt
+          echo "webAppName=$(cat webapp_name.txt)" >> "$GITHUB_OUTPUT"
+
+  deploy-app:
+    needs: infra
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build deployment package
+        run: |
+          zip -r app.zip . \
+            -x ".git/*" ".github/*" "infra/*" ".venv/*" "*.pyc" "__pycache__/*"
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ needs.infra.outputs.webAppName }}
+          package: app.zip

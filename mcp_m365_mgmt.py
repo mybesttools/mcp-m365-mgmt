@@ -1,6 +1,6 @@
 from mcp.server.fastmcp import FastMCP
 import asyncio
-from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential, ClientSecretCredential
+from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential, ClientSecretCredential, ManagedIdentityCredential
 import requests
 import os
 from dotenv import load_dotenv
@@ -15,8 +15,16 @@ mcp = FastMCP("entra-server")
 def get_credential():
     """Get Azure credential for authentication."""
     # Check authentication mode from environment
-    auth_mode = os.getenv("AUTH_MODE", "app")  # 'app' or 'user'
-    
+    auth_mode = os.getenv("AUTH_MODE", "app")  # 'app', 'user', or 'managed_identity'
+
+    if auth_mode == "managed_identity":
+        # Azure-hosted deployment: authenticate via the App Service's system-assigned
+        # managed identity (or a user-assigned one if AZURE_CLIENT_ID is set).
+        client_id = os.getenv("AZURE_CLIENT_ID")
+        if client_id:
+            return ManagedIdentityCredential(client_id=client_id)
+        return ManagedIdentityCredential()
+
     if auth_mode == "user":
         # Interactive user authentication
         tenant_id = os.getenv("AZURE_TENANT_ID")

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-m365-mgmt"
-version = "1.0.2"
+version = "1.1.0"
 description = "MCP server for Microsoft 365 and Intune management with 33 tools for Entra ID, devices, Autopilot, and more"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -45,7 +45,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastmcp>=0.1.0",
+    "mcp>=1.28.1",
     "azure-identity>=1.25.0",
     "requests>=2.31.0",
     "python-docx>=1.1.0",
