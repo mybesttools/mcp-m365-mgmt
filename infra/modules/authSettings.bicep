@@ -35,8 +35,13 @@ resource authSettingsV2 'Microsoft.Web/sites/config@2023-12-01' = {
           openIdIssuer: 'https://login.microsoftonline.com/${adminAadTenantId}/v2.0'
         }
         validation: {
+          // A plain OIDC sign-in's ID token has `aud` == the app's client ID,
+          // not an App ID URI (api://...) -- that form only applies to access
+          // tokens for a scope Easy Auth isn't requesting here. Using
+          // api://<clientId> caused every login to be rejected with a 401
+          // after an otherwise-successful Entra sign-in.
           allowedAudiences: [
-            'api://${adminAadClientId}'
+            adminAadClientId
           ]
         }
       }
