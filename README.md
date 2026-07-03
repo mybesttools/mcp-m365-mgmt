@@ -49,6 +49,13 @@ flowchart TB
     FastMCP -- "AUTH_MODE=managed_identity Azure<br/>or app/user local" --> Graph
 ```
 
+The hosted deployment's admin UI (`/admin`), for issuing and scoping per-agent client secrets:
+
+<p float="left">
+  <img src="docs/admin-ui-secrets-list.png" alt="Admin UI: list of agent client secrets" width="49%">
+  <img src="docs/admin-ui-new-secret.png" alt="Admin UI: creating a secret scoped to specific tools" width="49%">
+</p>
+
 ## 🚀 Quick Start
 
 ### Prerequisites
