@@ -33,6 +33,12 @@ resource authSettingsV2 'Microsoft.Web/sites/config@2023-12-01' = {
         registration: {
           clientId: adminAadClientId
           openIdIssuer: 'https://login.microsoftonline.com/${adminAadTenantId}/v2.0'
+          // App setting set by webApp.bicep. Required: Easy Auth v2's AAD
+          // provider defaults to the confidential-client auth code flow,
+          // which needs a secret to exchange the code for a token server-side
+          // at /.auth/login/aad/callback -- without it, every sign-in 401s
+          // right after Entra auth succeeds.
+          clientSecretSettingName: 'MICROSOFT_PROVIDER_AUTHENTICATION_SECRET'
         }
         validation: {
           // A plain OIDC sign-in's ID token has `aud` == the app's client ID,

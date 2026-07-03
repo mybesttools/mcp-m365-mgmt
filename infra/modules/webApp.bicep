@@ -17,6 +17,10 @@ param secretPepper string
 @description('Name of the Entra App Role required for /admin access')
 param adminAppRoleName string
 
+@secure()
+@description('Client secret for the admin SSO app registration -- Easy Auth v2 needs this to exchange the auth code for a token at /.auth/login/aad/callback (confidential client flow)')
+param adminAadClientSecret string
+
 resource webApp 'Microsoft.Web/sites@2023-12-01' = {
   name: name
   location: location
@@ -53,6 +57,12 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'WEBSITES_PORT'
           value: '8000'
+        }
+        {
+          // Conventional app setting name Easy Auth v2 expects for
+          // registration.clientSecretSettingName (see authSettings.bicep).
+          name: 'MICROSOFT_PROVIDER_AUTHENTICATION_SECRET'
+          value: adminAadClientSecret
         }
       ]
     }
