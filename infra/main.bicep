@@ -22,6 +22,10 @@ param adminAppRoleName string = 'Admin'
 @description('Pepper used to HMAC agent client secrets before storing in Table Storage')
 param secretPepper string
 
+@secure()
+@description('Client secret for the admin SSO app registration (see infra/bootstrap/README.md step 1)')
+param adminAadClientSecret string
+
 var storageAccountName = toLower('${appName}st${uniqueString(resourceGroup().id)}')
 var webAppName = '${appName}-web'
 var appServicePlanName = '${appName}-plan'
@@ -44,6 +48,7 @@ module webApp 'modules/webApp.bicep' = {
     storageAccountName: storageAccountName
     secretPepper: secretPepper
     adminAppRoleName: adminAppRoleName
+    adminAadClientSecret: adminAadClientSecret
   }
 }
 

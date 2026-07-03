@@ -91,6 +91,14 @@ az rest --method POST \
   --body "{\"principalId\":\"$ADMIN_USER_OBJECT_ID\",\"resourceId\":\"$SP_ID\",\"appRoleId\":\"$ADMIN_ROLE_ID\"}"
 
 echo "adminAadClientId=$APP_ID"   # feed into infra/main.bicep's adminAadClientId param
+
+# Required: Easy Auth v2's AAD provider defaults to the confidential-client
+# auth code flow, which needs this secret to exchange the code for a token
+# server-side at /.auth/login/aad/callback. Without it, sign-in 401s right
+# after Entra auth succeeds. Feed the output into the ADMIN_AAD_CLIENT_SECRET
+# GitHub secret (infra/main.bicep's adminAadClientSecret param) -- it expires
+# (2 years here), so it needs rotating with the same command before then.
+az ad app credential reset --id "$APP_ID" --append --display-name "easy-auth" --years 2 --query "password" -o tsv
 ```
 
 Redirect URI (add after the Web App exists, via `az ad app update --id "$APP_ID"
@@ -149,7 +157,9 @@ deploy identity is ever compromised.)
 
 ## 3. GitHub repository secrets
 
-Set these in the repo (Settings > Secrets and variables > Actions):
+Set these under **Settings > Secrets and variables > Actions** -- specifically
+the *Actions* tab, not *Codespaces* (a separate secret store that looks
+similar but workflows can't read from it; easy to pick the wrong one).
 
 | Secret | Value |
 |---|---|
@@ -158,6 +168,7 @@ Set these in the repo (Settings > Secrets and variables > Actions):
 | `AZURE_SUBSCRIPTION_ID` | `az account show --query id -o tsv` |
 | `AZURE_RESOURCE_GROUP` | the target resource group name |
 | `ADMIN_AAD_CLIENT_ID` | `$APP_ID` from step 1 |
+| `ADMIN_AAD_CLIENT_SECRET` | output of the `az ad app credential reset` command in step 1 |
 | `SECRET_PEPPER` | generate once: `openssl rand -base64 32` |
 
 `SECRET_PEPPER` is used to HMAC every agent client secret before it's stored in
