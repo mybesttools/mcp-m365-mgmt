@@ -14,6 +14,41 @@ This MCP server enables AI assistants and automation tools to interact with:
 - **Mobile Device Management** - Android and iOS policies
 - **App Protection Policies** - MAM policies
 
+## 🏗️ Architecture
+
+The same tool server (`mcp_m365_mgmt.py`) can run two ways: locally over stdio
+for a single user's MCP client, or hosted on Azure over HTTP for multiple
+agents at once, each with its own revocable client secret. See
+[infra/bootstrap/README.md](infra/bootstrap/README.md) for the hosted setup.
+
+```mermaid
+flowchart TB
+    subgraph LocalMode["Local stdio — Claude Desktop / VS Code"]
+        Desktop["MCP client"]
+    end
+
+    subgraph CloudMode["Azure Web App (webapp/) — multi-agent HTTP"]
+        Admin(["Admin browser"])
+        Agent(["Agent / MCP client"])
+        AdminRoute["/admin<br/>Easy Auth (Entra SSO)"]
+        McpRoute["/mcp<br/>bearer client secret"]
+        Storage[("Storage Account<br/>ClientSecrets table")]
+
+        Admin -- "sign in" --> AdminRoute
+        Agent -- "Authorization: Bearer amk_..." --> McpRoute
+        AdminRoute -- "create / revoke secrets" --> Storage
+        McpRoute -- "verify hash" --> Storage
+    end
+
+    FastMCP(("FastMCP server<br/>mcp_m365_mgmt.py — 33 tools"))
+
+    Desktop -- "stdio<br/>AUTH_MODE=app or user" --> FastMCP
+    McpRoute --> FastMCP
+
+    Graph["Microsoft Graph API"]
+    FastMCP -- "AUTH_MODE=managed_identity Azure<br/>or app/user local" --> Graph
+```
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -325,30 +360,21 @@ for site in result['tunnel_sites']:
 
 ## 📦 Deployment Options
 
-### Local Development
+### Local Development (stdio)
 
 ```bash
-python entra_server.py
+python mcp_m365_mgmt.py
+# or, if installed from PyPI:
+m365-mgmt
 ```
 
-### Docker Container
+### Azure Web App (hosted, multi-agent HTTP)
 
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-CMD ["python", "entra_server.py"]
-```
-
-### Azure Container Instance
-
-Deploy as containerized MCP server for cloud-based access.
-
-### GitHub Actions / Azure DevOps
-
-Use as automation tool in CI/CD pipelines for tenant management.
+Code-deploy (Oryx build, no Docker) to an Azure Web App with a system-assigned
+managed identity, admin SSO via Easy Auth, and per-agent bearer secrets — see
+the architecture diagram above. Provisioned with Bicep (`infra/`) and deployed
+via GitHub Actions with OIDC (`.github/workflows/`); one-time setup steps are
+in [infra/bootstrap/README.md](infra/bootstrap/README.md).
 
 ## 📚 Additional Documentation
 

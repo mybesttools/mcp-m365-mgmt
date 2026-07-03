@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appName": {
+      "value": "mcpm365"
+    },
+    "location": {
+      "value": "westeurope"
+    },
+    "appServicePlanSku": {
+      "value": "B1"
+    },
+    "adminAppRoleName": {
+      "value": "Admin"
+    },
+    "adminAadClientId": {
+      "value": ""
+    },
+    "secretPepper": {
+      "value": ""
+    }
+  }
+}

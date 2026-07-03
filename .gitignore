@@ -37,6 +37,7 @@ env/
 
 # IDE settings - personal preferences
 .vscode/
+.claude/
 .idea/
 *.swp
 *.swo

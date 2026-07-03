@@ -1,4 +1,4 @@
-fastmcp>=0.1.0
+mcp>=1.28.1
 azure-identity>=1.25.0
 requests>=2.31.0
 python-docx>=1.1.0
@@ -6,3 +6,9 @@ openpyxl>=3.1.0
 python-pptx>=0.6.23
 odfpy>=1.4.1
 python-dotenv>=1.0.0
+
+# Azure Web App hosting (webapp/) — not needed for local stdio use
+gunicorn>=22.0
+azure-data-tables>=12.5
+jinja2>=3.1
+aiohttp>=3.9  # async transport required by azure.identity.aio credentials

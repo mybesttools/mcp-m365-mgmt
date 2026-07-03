@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}MCP M365 Admin{% endblock %}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #ddd; }
+    .revoked { color: #999; text-decoration: line-through; }
+    .warning { background: #fff3cd; border: 1px solid #ffe69c; padding: 1rem; border-radius: 6px; }
+    code, pre { background: #f4f4f4; padding: 0.5rem; border-radius: 4px; word-break: break-all; }
+    form.inline { display: inline; }
+    button { cursor: pointer; }
+    header { display: flex; justify-content: space-between; align-items: baseline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{% block heading %}MCP M365 Admin{% endblock %}</h1>
+    {% if principal %}<span>logged in as {{ principal.name }}</span>{% endif %}
+  </header>
+  {% block content %}{% endblock %}
+</body>
+</html>
