@@ -1,0 +1,11 @@
+{
+	"mcpServers": {
+		"mcpm365": {
+			"type": "http",
+			"url": "https://mcpm365-web.azurewebsites.net/mcp/",
+			"headers": {
+				"Authorization": "Bearer ${MCPM365_TOKEN}"
+			}
+		}
+	}
+}
