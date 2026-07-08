@@ -244,9 +244,14 @@ AUTH_MODE=user
 
 ### MCP Client Integration
 
-#### Claude Desktop
+Two ways to connect a client, matching the two deployment options below:
+local stdio talks to Azure directly with its own credentials; hosted HTTP
+talks to a shared Azure Web App using a per-agent bearer secret issued from
+`/admin`.
 
-Add to your Claude Desktop configuration (`claude_desktop_config.json`):
+#### Local stdio (single agent, direct Azure credentials)
+
+**Claude Desktop** — add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -268,9 +273,88 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 If installed from PyPI, use the console script instead of a file path:
 `"command": "m365-mgmt", "args": []`.
 
-#### Other MCP Clients
+**Other MCP clients** — use the `mcp.json` configuration file included in the
+`mcp/` directory as a starting point; it uses the same `command`/`args` stdio
+shape as above.
 
-Use the `mcp.json` configuration file included in the `mcp/` directory.
+#### Hosted HTTP (multiple agents, shared server)
+
+First create a per-agent secret at `https://<your-app>.azurewebsites.net/admin`
+(sign in via Entra SSO), optionally scoped to a subset of the 33 tools. Then
+point your client at `https://<your-app>.azurewebsites.net/mcp/` with that
+secret as a bearer token — replace both with your own deployment's hostname
+and the secret you just created.
+
+##### Claude Desktop / Claude Code
+
+```json
+{
+	"mcpServers": {
+		"m365-mgmt": {
+			"type": "http",
+			"url": "https://<your-app>.azurewebsites.net/mcp/",
+			"headers": {
+				"Authorization": "Bearer <your-agent-secret>"
+			}
+		}
+	}
+}
+```
+
+Claude Desktop: add this to `claude_desktop_config.json`. Claude Code: add it
+to `.mcp.json` in your project, or run:
+
+```bash
+claude mcp add --transport http m365-mgmt https://<your-app>.azurewebsites.net/mcp/ \
+  --header "Authorization: Bearer <your-agent-secret>"
+```
+
+##### Gemini CLI
+
+Add to `~/.gemini/settings.json` (or `.gemini/settings.json` in your
+project); note the field is `httpUrl`, not `url`:
+
+```json
+{
+	"mcpServers": {
+		"m365-mgmt": {
+			"httpUrl": "https://<your-app>.azurewebsites.net/mcp/",
+			"headers": {
+				"Authorization": "Bearer <your-agent-secret>"
+			}
+		}
+	}
+}
+```
+
+##### GitHub Copilot (VS Code)
+
+Add to `.vscode/mcp.json` in your project (or your user profile's
+`mcp.json`). Using an `inputs` entry instead of a literal token means VS Code
+prompts for it once and stores it securely rather than writing it to a file
+that might get committed:
+
+```json
+{
+	"inputs": [
+		{
+			"id": "m365_mgmt_secret",
+			"type": "promptString",
+			"description": "mcp-m365-mgmt agent secret (from /admin)",
+			"password": true
+		}
+	],
+	"servers": {
+		"m365-mgmt": {
+			"type": "http",
+			"url": "https://<your-app>.azurewebsites.net/mcp/",
+			"headers": {
+				"Authorization": "Bearer ${input:m365_mgmt_secret}"
+			}
+		}
+	}
+}
+```
 
 ## 📖 Usage Examples
 
