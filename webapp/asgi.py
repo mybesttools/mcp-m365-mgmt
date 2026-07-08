@@ -17,7 +17,9 @@ from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
 
 from starlette.applications import Starlette
-from starlette.routing import Mount
+from starlette.requests import Request
+from starlette.responses import RedirectResponse
+from starlette.routing import Mount, Route
 
 from mcp_m365_mgmt import mcp
 
@@ -38,8 +40,12 @@ def build_app() -> Starlette:
             await stack.enter_async_context(store)
             yield
 
+    def redirect_to_admin(request: Request) -> RedirectResponse:
+        return RedirectResponse("/admin")
+
     return Starlette(
         routes=[
+            Route("/", redirect_to_admin),
             Mount("/admin", app=admin_app),
             Mount("/mcp", app=mcp_app),
         ],
