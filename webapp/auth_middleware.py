@@ -52,9 +52,20 @@ class BearerSecretMiddleware:
             return
 
         # request.body() already drained the original `receive`, so give the
-        # downstream app a fresh one that replays the buffered bytes.
+        # downstream app a fresh one that replays the buffered bytes once.
+        # Later calls must fall through to the real `receive` -- the MCP SDK
+        # keeps polling it for `http.disconnect` for the life of the session,
+        # and a replay that always returns the buffered body instead of
+        # blocking turns that into a busy-loop that starves the event loop
+        # and the response never gets sent.
+        body_sent = False
+
         async def cached_receive() -> dict[str, Any]:
-            return {"type": "http.request", "body": body, "more_body": False}
+            nonlocal body_sent
+            if not body_sent:
+                body_sent = True
+                return {"type": "http.request", "body": body, "more_body": False}
+            return await receive()
 
         await self._app(scope, cached_receive, send)
 
