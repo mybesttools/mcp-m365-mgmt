@@ -1166,6 +1166,11 @@ def list_sharepoint_sites():
         sites = []
         
         for site in result.get("value", []):
+            web_url = site.get("webUrl") or ""
+            if "/contentstorage/" in web_url:
+                # OneDrive-backed content-storage sites: system-internal,
+                # not real team sites, and not shown in the SharePoint UI.
+                continue
             sites.append({
                 "id": site.get("id"),
                 "name": site.get("name"),
