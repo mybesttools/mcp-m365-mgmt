@@ -86,8 +86,11 @@ def create_user(display_name: str, mail_nickname: str, user_principal_name: str)
         }
     }
     
+    # Graph's default POST /users response omits mailNickname (and most other
+    # properties) unless explicitly selected -- without this, the response
+    # silently returns null for fields that were in fact stored correctly.
     response = requests.post(
-        "https://graph.microsoft.com/v1.0/users",
+        "https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName,mailNickname,accountEnabled",
         headers=headers,
         json=body
     )
@@ -98,7 +101,8 @@ def create_user(display_name: str, mail_nickname: str, user_principal_name: str)
             "id": result.get("id"),
             "displayName": result.get("displayName"),
             "userPrincipalName": result.get("userPrincipalName"),
-            "mailNickname": result.get("mailNickname")
+            "mailNickname": result.get("mailNickname"),
+            "accountEnabled": result.get("accountEnabled")
         }
     else:
         return {"error": response.text, "status_code": response.status_code}
@@ -846,17 +850,22 @@ def get_user_info(user_id: str):
         "Content-Type": "application/json"
     }
     
+    # Graph's default GET /users/{id} response omits accountEnabled,
+    # mailNickname, and department unless explicitly selected -- without
+    # this, they silently return null regardless of their actual value.
     response = requests.get(
-        f"https://graph.microsoft.com/v1.0/users/{user_id}",
+        f"https://graph.microsoft.com/v1.0/users/{user_id}"
+        "?$select=id,displayName,userPrincipalName,mailNickname,mail,jobTitle,department,officeLocation,mobilePhone,businessPhones,accountEnabled",
         headers=headers
     )
-    
+
     if response.status_code == 200:
         user = response.json()
         return {
             "id": user.get("id"),
             "displayName": user.get("displayName"),
             "userPrincipalName": user.get("userPrincipalName"),
+            "mailNickname": user.get("mailNickname"),
             "mail": user.get("mail"),
             "jobTitle": user.get("jobTitle"),
             "department": user.get("department"),
