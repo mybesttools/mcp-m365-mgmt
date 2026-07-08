@@ -1,4 +1,5 @@
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 import asyncio
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential, ClientSecretCredential, ManagedIdentityCredential
 import requests
@@ -8,8 +9,32 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# webapp/asgi.py mounts this app's streamable-http app under its own "/mcp"
+# prefix, so this must be "/" here or requests would need to hit /mcp/mcp.
+# Azure App Service injects WEBSITE_HOSTNAME with the site's default hostname;
+# it must be allowlisted or the MCP SDK's DNS-rebinding protection rejects the
+# Host header with a 421.
+_website_hostname = os.getenv("WEBSITE_HOSTNAME")
+_transport_security = (
+    TransportSecuritySettings(
+        allowed_hosts=["127.0.0.1:*", "localhost:*", "[::1]:*", _website_hostname],
+        allowed_origins=[
+            "http://127.0.0.1:*",
+            "http://localhost:*",
+            "http://[::1]:*",
+            f"https://{_website_hostname}",
+        ],
+    )
+    if _website_hostname
+    else None
+)
+
 # Create MCP server instance
-mcp = FastMCP("entra-server")
+mcp = FastMCP(
+    "entra-server",
+    streamable_http_path="/",
+    transport_security=_transport_security,
+)
 
 # Initialize authentication
 def get_credential():
