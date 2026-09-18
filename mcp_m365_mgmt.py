@@ -100,7 +100,12 @@ def get_access_token():
 
 @mcp.tool()
 def create_user(display_name: str, mail_nickname: str, user_principal_name: str, mail: str = None):
-    """Creates a user in Microsoft Entra ID. Optionally sets the user's email (mail) address."""
+    """Creates a user in Microsoft Entra ID. Optionally sets the user's email (mail) address.
+
+    Safe to set at creation time, before any Exchange Online mailbox exists.
+    See set_user_mail's docstring for why this doesn't apply once a mailbox
+    is provisioned.
+    """
     access_token = get_access_token()
     
     headers = {
@@ -146,7 +151,16 @@ def create_user(display_name: str, mail_nickname: str, user_principal_name: str,
 
 @mcp.tool()
 def set_user_mail(user_id: str, mail: str):
-    """Sets or updates the email (mail) address of an existing user, identified by user principal name or object ID."""
+    """Sets or updates the email (mail) address of an existing user, identified by user principal name or object ID.
+
+    Only safe for users without an Exchange Online mailbox (e.g. cloud-only
+    accounts not yet licensed for Exchange). Once a mailbox is provisioned,
+    Exchange Online becomes authoritative for the primary SMTP address and
+    proxyAddresses -- editing `mail` directly here can desync from the
+    mailbox's actual address or get silently overwritten on the next sync.
+    For licensed users with a mailbox, change the address via Exchange
+    Online (Set-Mailbox) instead.
+    """
     access_token = get_access_token()
     
     headers = {
