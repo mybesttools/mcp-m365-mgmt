@@ -167,6 +167,33 @@ def set_user_mail(user_id: str, mail: str):
         return {"error": response.text, "status_code": response.status_code}
 
 @mcp.tool()
+def set_user_password(user_id: str, password: str, force_change_password_next_sign_in: bool = True):
+    """Sets or resets the password of an existing user, identified by user principal name or object ID."""
+    access_token = get_access_token()
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.patch(
+        f"https://graph.microsoft.com/v1.0/users/{user_id}",
+        headers=headers,
+        json={
+            "passwordProfile": {
+                "password": password,
+                "forceChangePasswordNextSignIn": force_change_password_next_sign_in
+            }
+        }
+    )
+
+    # PATCH /users returns 204 No Content on success with no response body.
+    if response.status_code == 204:
+        return {"success": True, "user_id": user_id}
+    else:
+        return {"error": response.text, "status_code": response.status_code}
+
+@mcp.tool()
 def list_intune_devices():
     """Lists Intune-managed devices from your tenant."""
     access_token = get_access_token()
