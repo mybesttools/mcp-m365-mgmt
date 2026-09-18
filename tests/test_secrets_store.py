@@ -12,7 +12,7 @@ async def test_create_then_verify_round_trip(store: ClientSecretStore):
 
 
 async def test_verify_rejects_wrong_secret(store: ClientSecretStore):
-    token, record = await store.create(label="test-agent", created_by="admin@example.com")
+    _token, record = await store.create(label="test-agent", created_by="admin@example.com")
     tampered = f"amk_{record.key_id}.not-the-real-secret"
 
     assert await store.verify(tampered) is None
