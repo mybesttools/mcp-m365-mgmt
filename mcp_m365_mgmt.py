@@ -99,8 +99,8 @@ def get_access_token():
     return token.token
 
 @mcp.tool()
-def create_user(display_name: str, mail_nickname: str, user_principal_name: str):
-    """Creates a user in Microsoft Entra ID."""
+def create_user(display_name: str, mail_nickname: str, user_principal_name: str, mail: str = None):
+    """Creates a user in Microsoft Entra ID. Optionally sets the user's email (mail) address."""
     access_token = get_access_token()
     
     headers = {
@@ -118,12 +118,15 @@ def create_user(display_name: str, mail_nickname: str, user_principal_name: str)
             "password": "TempPassword123!"
         }
     }
+
+    if mail:
+        body["mail"] = mail
     
     # Graph's default POST /users response omits mailNickname (and most other
     # properties) unless explicitly selected -- without this, the response
     # silently returns null for fields that were in fact stored correctly.
     response = requests.post(
-        "https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName,mailNickname,accountEnabled",
+        "https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName,mailNickname,mail,accountEnabled",
         headers=headers,
         json=body
     )
@@ -135,8 +138,31 @@ def create_user(display_name: str, mail_nickname: str, user_principal_name: str)
             "displayName": result.get("displayName"),
             "userPrincipalName": result.get("userPrincipalName"),
             "mailNickname": result.get("mailNickname"),
+            "mail": result.get("mail"),
             "accountEnabled": result.get("accountEnabled")
         }
+    else:
+        return {"error": response.text, "status_code": response.status_code}
+
+@mcp.tool()
+def set_user_mail(user_id: str, mail: str):
+    """Sets or updates the email (mail) address of an existing user, identified by user principal name or object ID."""
+    access_token = get_access_token()
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    
+    response = requests.patch(
+        f"https://graph.microsoft.com/v1.0/users/{user_id}",
+        headers=headers,
+        json={"mail": mail}
+    )
+    
+    # PATCH /users returns 204 No Content on success with no response body.
+    if response.status_code == 204:
+        return {"success": True, "user_id": user_id, "mail": mail}
     else:
         return {"error": response.text, "status_code": response.status_code}
 
