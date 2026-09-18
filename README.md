@@ -166,11 +166,13 @@ From your app registration **Overview** page, copy:
 - **Directory (tenant) ID** → `AZURE_TENANT_ID`
 - Client secret (from step 2) → `AZURE_CLIENT_SECRET`
 
-## 📋 Complete Tool List (33 Tools)
+## 📋 Complete Tool List (35 Tools)
 
-### 👥 User & Group Management (6 tools)
+### 👥 User & Group Management (8 tools)
 
 - `create_user` - Create new users in Microsoft Entra ID
+- `set_user_mail` - Set or update an existing user's email (mail) address
+- `set_user_password` - Set or reset an existing user's password
 - `get_user_info` - Get user details by ID
 - `list_users` - List all users in tenant
 - `list_groups` - List all groups
