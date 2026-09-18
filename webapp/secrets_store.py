@@ -13,16 +13,19 @@ import base64
 import hashlib
 import hmac
 import json
+import logging
 import os
 import secrets as secrets_module
 import string
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Self
 
 from azure.core.exceptions import ResourceNotFoundError
 from azure.data.tables.aio import TableServiceClient
 from azure.identity.aio import DefaultAzureCredential
+
+logger = logging.getLogger(__name__)
 
 TABLE_NAME = "ClientSecrets"
 PARTITION_KEY = "secret"
@@ -89,14 +92,14 @@ class ClientSecretStore:
         self._table_client = table_service.get_table_client(TABLE_NAME)
 
     @classmethod
-    def from_env(cls) -> "ClientSecretStore":
+    def from_env(cls) -> ClientSecretStore:
         account_name = os.environ["STORAGE_ACCOUNT_NAME"]
         pepper = os.environ["SECRET_PEPPER"].encode("utf-8")
         endpoint = f"https://{account_name}.table.core.windows.net"
         table_service = TableServiceClient(endpoint=endpoint, credential=DefaultAzureCredential())
         return cls(table_service, pepper)
 
-    async def __aenter__(self) -> "ClientSecretStore":
+    async def __aenter__(self) -> Self:
         await self._table_service.create_table_if_not_exists(TABLE_NAME)
         return self
 
@@ -183,4 +186,4 @@ class ClientSecretStore:
                 mode="merge",
             )
         except Exception:
-            pass
+            logger.warning("Failed to update lastUsedAt for key_id=%s", key_id, exc_info=True)

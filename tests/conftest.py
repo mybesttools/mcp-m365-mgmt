@@ -31,7 +31,7 @@ class FakeTableClient:
             raise ResourceNotFoundError("not found")
         self._entities[key].update({k: v for k, v in entity.items() if k not in ("PartitionKey", "RowKey")})
 
-    async def query_entities(self, filter: str):  # noqa: A002 - matches azure SDK signature
+    async def query_entities(self, filter: str):
         for entity in list(self._entities.values()):
             yield copy.deepcopy(entity)
 
