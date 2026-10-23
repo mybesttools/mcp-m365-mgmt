@@ -9,7 +9,7 @@
       "value": "westeurope"
     },
     "appServicePlanSku": {
-      "value": "B1"
+      "value": "F1"
     },
     "adminAppRoleName": {
       "value": "Admin"
