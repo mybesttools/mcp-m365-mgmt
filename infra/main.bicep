@@ -7,7 +7,7 @@ param appName string = 'mcpm365'
 param location string = resourceGroup().location
 
 @description('App Service Plan SKU')
-param appServicePlanSku string = 'B1'
+param appServicePlanSku string = 'F1'
 
 @description('Client ID of the Entra app registration used for admin SSO (see infra/bootstrap/README.md)')
 param adminAadClientId string

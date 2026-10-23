@@ -27,7 +27,7 @@ flowchart TB
     end
 
     subgraph RG["Resource group: mcpm365-rg (West Europe) — infra/main.bicep"]
-        subgraph WebApp["Azure Web App (B1, Python 3.12)"]
+        subgraph WebApp["Azure Web App (F1, Python 3.12)"]
             AdminRoute["/admin/*<br/>Easy Auth (Entra SSO)"]
             McpRoute["/mcp/*<br/>Bearer-secret middleware"]
             MI(["System-assigned<br/>managed identity"])
